@@ -1,0 +1,85 @@
+version: '3'
+services:
+  db:
+    image: postgres:10
+    container_name: db
+    environment:
+      POSTGRES_USER: mykeycloak
+      POSTGRES_PASSWORD: mykeycloak
+      POSTGRES_DB: mydatabase
+      POSTGRES_HOST: db
+    ports:
+      - "5432:5432"
+    networks:
+      - mynet
+
+  keycloak1:
+    build: ./keycloak
+    command: start-dev
+    container_name: keycloak1
+    hostname: keycloak1
+    depends_on:
+      - db
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      DB_VENDOR: postgres
+      DB_ADDR: db
+      DB_PORT: 5432
+    ports:
+      - "8443:8080"
+    networks:
+      - mynet
+
+  keycloak2:
+    container_name: "keycloak2"
+    build: ./keycloak
+    command: start-dev
+    hostname: keycloak2
+    depends_on:
+      - db
+      - keycloak1
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      DB_VENDOR: postgres
+      DB_ADDR: db
+      DB_PORT: 5432
+    ports:
+      - "8444:8080"
+    networks:
+      - mynet
+  
+  keycloak3:
+    container_name: "keycloak3"
+    build: ./keycloak
+    command: start-dev
+    hostname: keycloak3
+    depends_on:
+      - db
+      - keycloak2
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      DB_VENDOR: postgres
+      DB_ADDR: db
+      DB_PORT: 5432
+    ports:
+      - "8445:8080"
+    networks:
+      - mynet
+
+  haproxy:
+    container_name: "haproxy"
+    build: ./haproxy
+    restart: always
+    depends_on:
+      - keycloak3
+    ports:
+      - "80:80"
+    networks:
+      - mynet
+
+networks:
+  mynet:
+    driver: bridge
